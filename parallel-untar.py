@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 #
@@ -8,6 +8,7 @@
 # see http://www.apache.org/licenses/LICENSE-2.0 for license details
 
 import os
+import platform
 import errno
 import tarfile
 
@@ -21,6 +22,11 @@ import time
 debug = (os.getenv('DEBUG') is not None)
 
 NOTOK = 1  # process failure exit status
+
+
+# Python included with macOS gets unhappy if not using fork mode
+if platform.system() == "Darwin":
+    multiprocessing.set_start_method("fork")
 
 
 def usage(msg):

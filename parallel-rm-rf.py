@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 #
@@ -9,6 +9,7 @@
 # subdirectories
 
 import os
+import platform
 import errno
 import multiprocessing
 import sys
@@ -18,6 +19,9 @@ debug = (os.getenv('DEBUG') is not None)
 
 NOTOK = 1   # process exit status meaning failure
 
+# Python included with macOS gets unhappy if not using fork mode
+if platform.system() == "Darwin":
+    multiprocessing.set_start_method("fork")
 
 def usage(msg):
     print('ERROR: ' + msg)
