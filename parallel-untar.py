@@ -56,11 +56,13 @@ fn = sys.argv[1]
 if fn == '--help' or fn == '-h':
     usage('so you need help, we all knew that ;-)')
 print('untarring file %s with up to %d parallel threads' % (fn, thread_count))
-if not fn.endswith('.tar'):
-    usage('parallel-untar.py does not yet support compressed tar files' +
-          'uncompress first to .tar file then run it on that')
 if not os.path.exists(fn):
     usage('does not exist: %s' % fn)
+
+# use tarfile to determine if it's a tarfile it can read
+if not tarfile.is_tarfile(fn):
+    usage('parallel-untar.py is unable to read the tarfile. ' +
+        'If it is compressed, python might not be compiled with the decompressor.')
 
 
 # this class partitions directories in tar file amongst worker threads
