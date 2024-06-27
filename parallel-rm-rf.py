@@ -47,9 +47,13 @@ def find_subdirs(d):
 
 # parse command line inputs and display them
 
-thread_count = 4
+try:
+    # default the number of threads to half the CPU count
+    thread_count = multiprocessing.cpu_count() // 2
+except Exception:
+    thread_count = 4
+
 topdir = sys.argv[1]
-start_time = time.time()
 
 if len(sys.argv) > 2:
     try:
@@ -163,6 +167,7 @@ class rmThread(multiprocessing.Process):
 
 
 # MAIN PROGRAM -- create & start worker threads, wait for them to finish
+start_time = time.time()
 
 worker_pool = []
 for n in range(0, thread_count):

@@ -39,10 +39,11 @@ fmt_dangling_link = \
 fmt_link2nonexistent = \
     '%s is a link pointing to a relative non-existent file'
 
-# parse command line inputs
-
-thread_count = 4
-start_time = time.time()
+try:
+    # default the number of threads to half the CPU count
+    thread_count = multiprocessing.cpu_count() // 2
+except Exception:
+    thread_count = 4
 
 if len(sys.argv) > 2:
     try:
@@ -187,6 +188,7 @@ class untarThread(multiprocessing.Process):
 
 
 # create & start worker threads, wait for them to finish
+start_time = time.time()
 
 worker_pool = []
 for n in range(0, thread_count):
