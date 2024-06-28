@@ -29,9 +29,14 @@ if platform.system() == "Darwin":
     multiprocessing.set_start_method("fork")
 
 
-def usage(msg):
-    print('ERROR: ' + msg)
-    print('usage: parallel-untar.py your-file.tar [ max-threads ]')
+def usage(msg = None):
+    if msg:
+        print('ERROR: ' + msg)
+    print('usage:')
+    print('    parallel-untar.py [--threads X] file.tar')
+    print()
+    print('It also tries to handle tar\'s native extract syntax, eg:')
+    print('    parallel-untar.py xf file.tar')
     sys.exit(NOTOK)
 
 fmt_dangling_link = \
@@ -39,22 +44,77 @@ fmt_dangling_link = \
 fmt_link2nonexistent = \
     '%s is a link pointing to a relative non-existent file'
 
-try:
-    # default the number of threads to half the CPU count
-    thread_count = multiprocessing.cpu_count() // 2
-except Exception:
-    thread_count = 4
+def parse_args(argv):
+    # it's non-trivial to use argparse since we want to minimally support
+    # tar's native format for extracts, so we roll out own. woo.
+    tar_filename = None
 
-if len(sys.argv) > 2:
     try:
-        thread_count = int(sys.argv[2])
-    except ValueError as e:
-        usage('could not parse thread count %s' % sys.argv[2])
-elif len(sys.argv) < 2:
-    usage('must supply .tar file')
-fn = sys.argv[1]
-if fn == '--help' or fn == '-h':
-    usage('so you need help, we all knew that ;-)')
+        # default the number of threads to half the CPU count
+        thread_count = multiprocessing.cpu_count() // 2
+    except Exception:
+        thread_count = 4
+
+    # if any arg is asking for help, give it to them
+    for arg in argv:
+        if arg in ["--help", "-h"]:
+            usage()
+
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+
+        if arg in ["--help", "-h"]:
+            pass
+
+        elif i == 1 and os.path.exists(arg):
+            # if the first argument is a filename, that's our filename
+            tar_filename = arg
+
+        elif arg == "--threads":
+            i += 1
+            try:
+                thread_count = int(argv[i])
+            except ValueError as e:
+                usage('could not parse thread count')
+
+        elif arg in ["-v", "-z", "-x"]:
+            # we do these automatically, and can ignore them
+            pass
+
+        elif arg in ["-o"]:
+            # python's tarfile doesn't let us set mtime and mode separate from
+            # owner so we just blindly ignore this for now so we can get the
+            # mtime/mode
+            pass
+
+        elif arg == '-f':
+            i += 1
+            tar_filename = argv[i]
+
+        elif i == len(argv) -1 and os.path.exists(arg):
+            # and if the last argument is a filename, that's our filename
+            tar_filename = arg
+
+        else:
+            for option in arg:
+                if option in ["-", "v", "z", "x", "o"]:
+                    pass
+                elif option == "f":
+                    i += 1
+                    tar_filename = argv[i]
+                else:
+                    usage(f'could not parse argument {arg}')
+
+        i += 1
+
+    if not tar_filename:
+        usage('must supply .tar file')
+
+    return tar_filename, thread_count
+
+fn, thread_count = parse_args(sys.argv)
+
 print('untarring file %s with up to %d parallel threads' % (fn, thread_count))
 if not os.path.exists(fn):
     usage('does not exist: %s' % fn)
